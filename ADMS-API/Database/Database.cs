@@ -95,7 +95,6 @@ namespace ADMS_API.Database
 
             using (SqlConnection connection = new SqlConnection(SQL_CONNECTION_PRODUCTIONS))
             {
-
                 connection.Open();
                 responseGetInfoDisp = new Dictionary<string, string>();
                 responseFindColab = new Dictionary<string, string>();
@@ -122,7 +121,7 @@ namespace ADMS_API.Database
                         if (responseGetPlantilla == CODIGO_SIN_DATOS)
                         {
                             isUpdate = false;
-                            if (createOrUpdateTemplate(connection, logger, biodata.dni, biometria, indice, tipoBiometria, largo, disTipoOut) != CODIGO_EXITO)
+                            if (createOrUpdateTemplate(connection, logger, biodata.dni, biometria, indice, tipoBiometria, largo, disTipoOut, responseGetPlantilla) != CODIGO_EXITO)
                                 return "CODIGO DE ERROR EN createOrUpdateTemplate.";
                             return "Template creado.";
                         }
@@ -140,7 +139,7 @@ namespace ADMS_API.Database
                                 msgResponse = "Template actualizado."; 
                             }
 
-                            if (createOrUpdateTemplate(connection, logger, biodata.dni, biometria, indice, tipoBiometria, largo, disTipoOut) != CODIGO_EXITO)
+                            if (createOrUpdateTemplate(connection, logger, biodata.dni, biometria, indice, tipoBiometria, largo, disTipoOut, responseGetPlantilla) != CODIGO_EXITO)
                                 return "CODIGO DE ERROR EN createOrUpdateTemplate.";
                             return msgResponse;
                         }
@@ -158,7 +157,7 @@ namespace ADMS_API.Database
                     if (responseGetPlantilla == CODIGO_SIN_DATOS)
                     {
                         isUpdate = false;
-                        if (createOrUpdateTemplate(connection, logger, biodata.dni, biometria, indice, tipoBiometria, largo, disTipoOut) == CODIGO_EXITO)
+                        if (createOrUpdateTemplate(connection, logger, biodata.dni, biometria, indice, tipoBiometria, largo, disTipoOut, responseGetPlantilla) == CODIGO_EXITO)
                         {
                             int responseCheckModelo = checkModelo(connection, logger, biodata.dni, responseGetInfoDisp["zona"], responseGetInfoDisp["instancia"], responseGetInfoDisp["id"]);
                             getDispsModelo(connection, logger, biodata.dni, responseGetInfoDisp["id"], responseGetInfoDisp["instancia"], responseGetInfoDisp["sucursal"]);
@@ -196,9 +195,8 @@ namespace ADMS_API.Database
                             else
                                 isUpdate = true;
 
-                            if (createOrUpdateTemplate(connection, logger, biodata.dni, biometria, indice, tipoBiometria, largo, disTipoOut) == CODIGO_EXITO)
+                            if (createOrUpdateTemplate(connection, logger, biodata.dni, biometria, indice, tipoBiometria, largo, disTipoOut, responseGetPlantilla) == CODIGO_EXITO)
                             {
-
                                 int responseCheckModelo = checkModelo(connection, logger, biodata.dni, responseGetInfoDisp["zona"], responseGetInfoDisp["instancia"], responseGetInfoDisp["id"]);
                                 getDispsModelo(connection, logger, biodata.dni, responseGetInfoDisp["id"], responseGetInfoDisp["instancia"], responseGetInfoDisp["sucursal"]);
                                 if (responseCheckModelo == CODIGO_EXITO)
@@ -235,8 +233,6 @@ namespace ADMS_API.Database
 
         public static string UseDatabaseConciliador(ILogger logger, Biodata biodata, Userinfo userinfo) 
         {
-             
-
             using (SqlConnection connection = new SqlConnection(SQL_CONNECTION_PRODUCTIONS))
             {
                 connection.Open();
@@ -482,7 +478,7 @@ namespace ADMS_API.Database
                 }
             }
         }
-        public static int createOrUpdateTemplate(SqlConnection connection, ILogger logger, string dni, string biometria, string indice, int tipoBiometria, string largo, int tipoDisp)
+        public static int createOrUpdateTemplate(SqlConnection connection, ILogger logger, string dni, string biometria, string indice, int tipoBiometria, string largo, int tipoDisp, int responseGetPlantilla)
         {
             if (tipoBiometria == 1 || tipoBiometria == 2)
             {
@@ -496,63 +492,88 @@ namespace ADMS_API.Database
                     else
                         biometriaSql = 2;
                 }
-                //----
 
-                string query1 = string.Format("SELECT 1 FROM KEY_TEMPLATE WHERE TEM_DATO = '{0}'", biometria); // seleccionar todos los bagnumer sucursal 
                 try
                 {
-                    using (SqlCommand command = new SqlCommand(query1, connection)) 
+                    if (responseGetPlantilla == CODIGO_SIN_DATOS)
                     {
-                        SqlDataReader response1;
-                        response1 = command.ExecuteReader();
-                        if (!response1.HasRows) 
+                        if (isUpdate)
                         {
-                            response1.Close();
-                            if (isUpdate)
-                            {
-                                string query = string.Format("UPDATE KEY_TEMPLATE SET TEM_DATO = '{0}', TEM_LARGO = {1} WHERE TEM_DNI = {2} AND TEM_TIPO = {3}  AND TEM_INDICE = {4}", biometria, largo, dni, biometriaSql, indice); // seleccionar todos los bagnumer sucursal 
+                            string query = string.Format("UPDATE KEY_TEMPLATE SET TEM_DATO = '{0}', TEM_LARGO = {1} WHERE TEM_DNI = {2} AND TEM_TIPO = {3}  AND TEM_INDICE = {4}", biometria, largo, dni, biometriaSql, indice); // seleccionar todos los bagnumer sucursal 
 
-                                try
-                                {
-                                    using (SqlCommand command1 = new SqlCommand(query, connection)) { command1.ExecuteNonQuery(); }
-                                }
-                                catch (Exception ex)
-                                {
-                                    logger.LogError("createOrUpdateTemplate - ERROR EN UPDATE: " + ex.Message);
-                                    response1.Close();
-                                    return CODIGO_ERROR;
-                                }
+                            try
+                            {
+                                using (SqlCommand command1 = new SqlCommand(query, connection)) { command1.ExecuteNonQuery(); }
                             }
-                            else //$dni.",".$biometriaSql.",'".$biometria."',".$largo.",".$indice."
+                            catch (Exception ex)
                             {
+                                logger.LogError("createOrUpdateTemplate - ERROR EN UPDATE: " + ex.Message);
+                                return CODIGO_ERROR;
+                            }
+                        }
+                        else //$dni.",".$biometriaSql.",'".$biometria."',".$largo.",".$indice."
+                        {
 
-                                string query = string.Format("INSERT INTO KEY_TEMPLATE (TEM_DNI,TEM_TIPO,TEM_DATO,TEM_LARGO,TEM_INDICE) VALUES ({0},{1},'{2}',{3},{4})", dni, biometriaSql, biometria, largo, indice); // seleccionar todos los bagnumer sucursal 
+                            string query = string.Format("INSERT INTO KEY_TEMPLATE (TEM_DNI,TEM_TIPO,TEM_DATO,TEM_LARGO,TEM_INDICE) VALUES ({0},{1},'{2}',{3},{4})", dni, biometriaSql, biometria, largo, indice); // seleccionar todos los bagnumer sucursal 
 
-                                try
-                                {
-                                    using (SqlCommand command1 = new SqlCommand(query, connection)) { command1.ExecuteNonQuery();  }
-                                }
-                                catch (Exception ex)
-                                {
-                                    logger.LogError("createOrUpdateTemplate - ERROR EN INSERT: " + ex.Message);
-                                    response1.Close();
-                                    return CODIGO_ERROR;
-                                }
+                            try
+                            {
+                                using (SqlCommand command1 = new SqlCommand(query, connection)) { command1.ExecuteNonQuery(); }
+                            }
+                            catch (Exception ex)
+                            {
+                                logger.LogError("createOrUpdateTemplate - ERROR EN INSERT: " + ex.Message);
+                                return CODIGO_ERROR;
                             }
                         }
                     }
-
-                    
+                    else
+                    {
+                        string query1 = string.Format("SELECT 1 FROM KEY_TEMPLATE WHERE TEM_DATO = '{0}'", biometria); // seleccionar todos los bagnumer sucursal 
+                        using (SqlCommand command = new SqlCommand(query1, connection))
+                        {
+                            SqlDataReader response1;
+                            response1 = command.ExecuteReader();
+                            if (!response1.HasRows)
+                            {
+                                response1.Close();
+                                if (isUpdate)
+                                {
+                                    string query = string.Format("UPDATE KEY_TEMPLATE SET TEM_DATO = '{0}', TEM_LARGO = {1} WHERE TEM_DNI = {2} AND TEM_TIPO = {3}  AND TEM_INDICE = {4}", biometria, largo, dni, biometriaSql, indice); // seleccionar todos los bagnumer sucursal 
+                                    try
+                                    {
+                                        using (SqlCommand command1 = new SqlCommand(query, connection)) { command1.ExecuteNonQuery(); }
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        logger.LogError("createOrUpdateTemplate - ERROR EN UPDATE: " + ex.Message);
+                                        response1.Close();
+                                        return CODIGO_ERROR;
+                                    }
+                                }
+                                else //$dni.",".$biometriaSql.",'".$biometria."',".$largo.",".$indice."
+                                {
+                                    string query = string.Format("INSERT INTO KEY_TEMPLATE (TEM_DNI,TEM_TIPO,TEM_DATO,TEM_LARGO,TEM_INDICE) VALUES ({0},{1},'{2}',{3},{4})", dni, biometriaSql, biometria, largo, indice); // seleccionar todos los bagnumer sucursal 
+                                    try
+                                    {
+                                        using (SqlCommand command1 = new SqlCommand(query, connection)) { command1.ExecuteNonQuery(); }
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        logger.LogError("createOrUpdateTemplate - ERROR EN INSERT: " + ex.Message);
+                                        response1.Close();
+                                        return CODIGO_ERROR;
+                                    }
+                                }
+                            }
+                        }
+                    }                        
                 }
                 catch (Exception ex)
                 {
                     logger.LogError("createOrUpdateTemplate - ERROR EN UPDATE: " + ex.Message);
                     return CODIGO_ERROR;
                 }
-
-                //----
-
-                
                 return CODIGO_EXITO;
             }
             logger.LogInformation("createOrUpdateTemplate - ERROR EN EL TIPO DE BIOMETRIA: " + tipoBiometria.ToString());

@@ -771,38 +771,13 @@ namespace ADMS_API.Database
                      logger.LogError("getDispsModelo - ERROR EN LA QUERY: " + ex.Message);
                     response.Close();
                 }
-            }
-
-            query = "SELECT d.sn FROM KEY_MODELO_DISPOSITIVO m INNER JOIN Machines d ON d.ZONA_ID = m.MOD_ZONA_ID";
-            query += string.Format(" WHERE m.MOD_IDENTIFICADOR_USUARIO = '{0}' AND m.INSTANCIA = '{1}' AND d.ID <> {2} AND d.ID_SUCURSAL = {3}", dni, instancia, idDisp, sucursal);
-
-            using (SqlCommand command = new SqlCommand(query, connection))
-            {
-                 logger.LogInformation("QUERY PARA SELECCIONAR LOS COLABORADORES: " + query);
-                response = command.ExecuteReader();
-                try
-                {
-                    if (response.HasRows)
-                    {
-                        while (response.Read())                        
-                            listSN.Add(response[0].ToString());//response[0] userinfo de cada uno insertar la transaccion                         
-                    }                    
-                    response.Close();
-                }
-                catch (Exception ex)
-                {
-                     logger.LogError("getDispsModelo - ERROR EN LA QUERY: " + ex.Message);
-                    response.Close();
-                }
-            }
+            }            
         }
-        public static void addPublish( ILogger logger, string sn,string dni, string nomColab, string rutEmp, string nomEmp ,string dirEmp, string pZk, string tarjeta, string grupo, string biometria, string indice, string largo, string tipoBiometria, string pass,List<string> dispsModeloDuplicate) 
+        public static void addPublish( ILogger logger, string sn,string dni, string nomColab, string rutEmp, string nomEmp ,string dirEmp, string pZk, string tarjeta, string grupo, string biometria, string indice, string largo, string tipoBiometria, string pass,List<string> dispsModelo) 
         {
             string jsonStrBiophoto = "";
             string jsonStrFinger = "";
             string jsonStrUserInfo = "";
-
-            List<string> dispsModelo = dispsModeloDuplicate.Distinct().ToList();
 
             try
             {

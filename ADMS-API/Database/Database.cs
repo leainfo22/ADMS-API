@@ -5,6 +5,9 @@ using System.Linq;
 using ADMS_API.Controllers;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using System.Security.Cryptography;
+using System.Text;
+
 
 namespace ADMS_API.Database
 {
@@ -231,163 +234,318 @@ namespace ADMS_API.Database
             return "FIN DE USE DATABASE";
         }
 
-        public static string UseDatabaseConciliador(ILogger logger, Biodata biodata, Userinfo userinfo) 
+        public string UseDatabaseConciliador(ILogger logger, Biodata biodata, Userinfo userinfo)
         {
-            using (SqlConnection connection = new SqlConnection(SQL_CONNECTION_PRODUCTIONS))
+            try
             {
-                connection.Open();
-                string query = string.Format("SELECT 1 FROM KEY_CONCILIADOR WHERE dni ='{0}'", biodata.dni); // seleccionar todos los bagnumer sucursal 
-
-                using (SqlCommand command = new SqlCommand(query, connection))
+                using (SqlConnection connection = new SqlConnection(SQL_CONNECTION_PRODUCTIONS))
                 {
-                    logger.LogInformation("getInfoDisp - QUERY: " + query);
-                    response = command.ExecuteReader();
-                    try
+                    string dni = "";
+                    string sn = "";
+
+                    if (userinfo != null)
                     {
-                        if (response.HasRows)
+                        dni = userinfo.datos_colab[0].userId;
+                        sn = userinfo.sn;
+                    }
+                    else if (biodata != null)
+                    {
+                        dni = biodata.dni;
+                        sn = biodata.sn;
+                    }
+                    else 
+                    {
+                        logger.LogError("ERROR CONCILIADOR: " + " BIODATA O USERINFO NULL");
+                        return "";
+                    }
+                    connection.Open();
+                    string query = string.Format("SELECT 1 FROM KEY_CONCILIADOR WHERE DNI ='{0}'", dni); // seleccionar todos los bagnumer sucursal 
+
+                    using (SqlCommand command = new SqlCommand(query, connection))
+                    {
+                        logger.LogInformation("API_CONCILIADOR getInfoDisp - QUERY: " + query);
+                        response = command.ExecuteReader();
+                        try
                         {
-                            response.Close();
-                            if (userinfo != null)
+                            if (response.HasRows)
                             {
-                                query = string.Format("UPDATE KEY_CONCILIADOR SET FECHA = CONVERT(DATETIME, '{0}'), USERINFO = {1}", DateTime.Now.ToString("yyyy-MM-dd"), 1);
+                                response.Close();
+                                if (userinfo != null)
+                                {
+                                    query = string.Format("UPDATE KEY_CONCILIADOR SET FECHA = CONVERT(DATETIME, '{0}'), USERINFO = {1} WHERE DNI = '{2}' AND SN = '{3}'", DateTime.Now.ToString("yyyy-MM-dd"), 1, dni, sn);
+                                    using (SqlCommand command2 = new SqlCommand(query, connection))
+                                    {
+                                        logger.LogInformation("API_CONCILIADOR getInfoDisp - QUERY: " + query);
+                                        command2.ExecuteNonQuery();
+                                    }
+                                    return "USERINFO ACTUALIZADA.";
+                                }
+                                else if (!string.IsNullOrEmpty(biodata.cara) && biodata.cara != "")
+                                {
+                                    query = string.Format("UPDATE KEY_CONCILIADOR SET FECHA = CONVERT(DATETIME, '{0}'), BIOPHOTO = {1}, HASHBIOPHOTO = '{2}' WHERE DNI = '{3}' AND SN = '{4}' ", DateTime.Now.ToString("yyyy-MM-dd"), 1, ComputeSha256Hash(biodata.cara + sn), dni, sn);
+                                    using (SqlCommand command2 = new SqlCommand(query, connection))
+                                    {
+                                        logger.LogInformation("API_CONCILIADOR getInfoDisp - QUERY: " + query);
+                                        command2.ExecuteNonQuery();
+                                    }
+                                    return "BIOPHOTO ACTUALIZADA.";
+                                }
+                                else if (!string.IsNullOrEmpty(biodata.huella) && biodata.huella != "")
+                                {
+                                    string res = "";
+                                    switch (biodata.indiceDedo)
+                                    {
+                                        case "0":
+                                            query = string.Format("UPDATE KEY_CONCILIADOR SET FECHA = CONVERT(DATETIME, '{0}'), BIODATA = {1}, HASHBIODATA = '{2}' WHERE DNI = '{3}' AND SN = '{4}'", DateTime.Now.ToString("yyyy-MM-dd"), 1, ComputeSha256Hash(biodata.huella + sn), dni, sn);
+                                            using (SqlCommand command2 = new SqlCommand(query, connection))
+                                            {
+                                                logger.LogInformation("API_CONCILIADOR getInfoDisp - QUERY: " + query);
+                                                command2.ExecuteNonQuery();
+                                            }
+                                            res = "BIODATA_0 ACTUALIZADA.";
+                                            break;
+                                        case "1":
+                                            query = string.Format("UPDATE KEY_CONCILIADOR SET FECHA = CONVERT(DATETIME, '{0}'), BIODATA1 = {1}, HASHBIODATA1 = '{2}' WHERE DNI = '{3}' AND SN = '{4}'", DateTime.Now.ToString("yyy-MM-dd"), 1, ComputeSha256Hash(biodata.huella + sn), dni, sn);
+                                            using (SqlCommand command2 = new SqlCommand(query, connection))
+                                            {
+                                                logger.LogInformation("API_CONCILIADOR getInfoDisp - QUERY: " + query);
+                                                command2.ExecuteNonQuery();
+                                            }
+                                            res = "BIODATA_1 ACTUALIZADA.";
+                                            break;
+                                        case "2":
+                                            query = string.Format("UPDATE KEY_CONCILIADOR SET FECHA = CONVERT(DATETIME, '{0}'), BIODATA2 = {1}, HASHBIODATA2 = '{2}' WHERE DNI = '{3}' AND SN = '{4}'", DateTime.Now.ToString("yyyy-MM-dd"), 1, ComputeSha256Hash(biodata.huella + sn), dni, sn);
+                                            using (SqlCommand command2 = new SqlCommand(query, connection))
+                                            {
+                                                logger.LogInformation("API_CONCILIADOR getInfoDisp - QUERY: " + query);
+                                                command2.ExecuteNonQuery();
+                                            }
+                                            res = "BIODATA_2 ACTUALIZADA.";
+                                            break;
+                                        case "3":
+                                            query = string.Format("UPDATE KEY_CONCILIADOR SET FECHA = CONVERT(DATETIME, '{0}'), BIODATA3 = {1}, HASHBIODATA3 = '{2}' WHERE DNI = '{3}' AND SN = '{4}'", DateTime.Now.ToString("yyyy-MM-dd"), 1, ComputeSha256Hash(biodata.huella + sn), dni, sn);
+                                            using (SqlCommand command2 = new SqlCommand(query, connection))
+                                            {
+                                                logger.LogInformation("API_CONCILIADOR getInfoDisp - QUERY: " + query);
+                                                command2.ExecuteNonQuery();
+                                            }
+                                            res = "BIODATA_3 ACTUALIZADA.";
+                                            break;
+                                        case "4":
+                                            query = string.Format("UPDATE KEY_CONCILIADOR SET FECHA = CONVERT(DATETIME, '{0}'), BIODATA4 = {1}, HASHBIODATA4 = '{2}' WHERE DNI = '{3}' AND SN = '{4}'", DateTime.Now.ToString("yyyy-MM-dd"), 1, ComputeSha256Hash(biodata.huella + sn), dni, sn);
+                                            using (SqlCommand command2 = new SqlCommand(query, connection))
+                                            {
+                                                logger.LogInformation("API_CONCILIADOR getInfoDisp - QUERY: " + query);
+                                                command2.ExecuteNonQuery();
+                                            }
+                                            res = "BIODATA_4 ACTUALIZADA.";
+                                            break;
+                                        case "5":
+                                            query = string.Format("UPDATE KEY_CONCILIADOR SET FECHA = CONVERT(DATETIME, '{0}'), BIODATA5 = {1}, HASHBIODATA5 = '{2}' WHERE DNI = '{3}' AND SN = '{4}'", DateTime.Now.ToString("yyyy-MM-dd"), 1, ComputeSha256Hash(biodata.huella + sn), dni, sn);
+                                            using (SqlCommand command2 = new SqlCommand(query, connection))
+                                            {
+                                                logger.LogInformation("API_CONCILIADOR getInfoDisp - QUERY: " + query);
+                                                command2.ExecuteNonQuery();
+                                            }
+                                            res = "BIODATA_5 ACTUALIZADA.";
+                                            break;
+                                        case "6":
+                                            query = string.Format("UPDATE KEY_CONCILIADOR SET FECHA = CONVERT(DATETIME, '{0}'), BIODATA6 = {1}, HASHBIODATA6 = '{2}' WHERE DNI = '{3}' AND SN = '{4}'", DateTime.Now.ToString("yyyy-MM-dd"), 1, ComputeSha256Hash(biodata.huella + sn), dni, sn);
+                                            using (SqlCommand command2 = new SqlCommand(query, connection))
+                                            {
+                                                logger.LogInformation("API_CONCILIADOR getInfoDisp - QUERY: " + query);
+                                                command2.ExecuteNonQuery();
+                                            }
+                                            res = "BIODATA_6 ACTUALIZADA.";
+                                            break;
+                                        case "7":
+                                            query = string.Format("UPDATE KEY_CONCILIADOR SET FECHA = CONVERT(DATETIME, '{0}'), BIODATA7 = {1}, HASHBIODATA7 = '{2}' WHERE DNI = '{3}' AND SN = '{4}'", DateTime.Now.ToString("yyyy-MM-dd"), 1, ComputeSha256Hash(biodata.huella + sn), dni, sn);
+                                            using (SqlCommand command2 = new SqlCommand(query, connection))
+                                            {
+                                                logger.LogInformation("API_CONCILIADOR getInfoDisp - QUERY: " + query);
+                                                command2.ExecuteNonQuery();
+                                            }
+                                            res = "BIODATA_7 ACTUALIZADA.";
+                                            break;
+                                        case "8":
+                                            query = string.Format("UPDATE KEY_CONCILIADOR SET FECHA = CONVERT(DATETIME, '{0}'), BIODATA8 = {1}, HASHBIODATA8 = '{2}' WHERE DNI = '{3}' AND SN = '{4}'", DateTime.Now.ToString("yyyy-MM-dd"), 1, ComputeSha256Hash(biodata.huella + sn), dni, sn);
+                                            using (SqlCommand command2 = new SqlCommand(query, connection))
+                                            {
+                                                logger.LogInformation("API_CONCILIADOR getInfoDisp - QUERY: " + query);
+                                                command2.ExecuteNonQuery();
+                                            }
+                                            res = "BIODATA_8 ACTUALIZADA.";
+                                            break;
+                                        case "9":
+                                            query = string.Format("UPDATE KEY_CONCILIADOR SET FECHA = CONVERT(DATETIME, '{0}'), BIODATA9 = {1}, HASHBIODATA9 = '{2}' WHERE DNI = '{3}' AND SN = '{4}'", DateTime.Now.ToString("yyyy-MM-dd"), 1, ComputeSha256Hash(biodata.huella + sn), dni, sn);
+                                            using (SqlCommand command2 = new SqlCommand(query, connection))
+                                            {
+                                                logger.LogInformation("API_CONCILIADOR getInfoDisp - QUERY: " + query);
+                                                command2.ExecuteNonQuery();
+                                            }
+                                            res = "BIODATA_9 ACTUALIZADA.";
+                                            break;
+                                    }
+                                    return res;
+                                }
+                            }
+                            else
+                            {
+                                query = "INSERT INTO KEY_CONCILIADOR(DNI, SN, FECHA, USERINFO, BIOPHOTO, BIODATA, BIODATA1, BIODATA2,BIODATA3,BIODATA4,BIODATA5,BIODATA6,BIODATA7,BIODATA8,BIODATA9,HASHBIOPHOTO,HASHBIODATA,HASHBIODATA1,HASHBIODATA2,HASHBIODATA3,HASHBIODATA4,HASHBIODATA5,HASHBIODATA6,HASHBIODATA7,HASHBIODATA8,HASHBIODATA9) VALUES(";
+                                query += string.Format("'{0}', '{1}', CONVERT(DATETIME, '{2}'), {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}, {11}, {12}, {13}, {14}, '{15}', '{16}', '{17}', '{18}', '{19}', '{20}', '{21}', '{22}', '{23}', '{24}', '{25}')", dni, sn, DateTime.Now.ToString("yyyy-MM-dd"), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0");
                                 using (SqlCommand command2 = new SqlCommand(query, connection))
                                 {
                                     logger.LogInformation("getInfoDisp - QUERY: " + query);
                                     command2.ExecuteNonQuery();
                                 }
-                                return "USERINFO ACTUALIZADA.";
-                            }
-                            else if (!string.IsNullOrEmpty(biodata.cara) && biodata.cara != "")
-                            {
-                                query = string.Format("UPDATE KEY_CONCILIADOR SET FECHA = CONVERT(DATETIME, '{0}'), BIOPHOTO = {1}", DateTime.Now.ToString("yyyy-MM-dd"), 1);
-                                using (SqlCommand command2 = new SqlCommand(query, connection))
-                                {
-                                    logger.LogInformation("getInfoDisp - QUERY: " + query);
-                                    command2.ExecuteNonQuery();
-                                }
-                                return "BIOPHOTO ACTUALIZADA.";
-                            }
-                            else if (!string.IsNullOrEmpty(biodata.huella) && biodata.huella != "") 
-                            {
-                                string res = "";
-                                switch (biodata.indiceDedo)
-                                {
-                                    case "0":
-                                        query = string.Format("UPDATE KEY_CONCILIADOR SET FECHA = CONVERT(DATETIME, '{0}'), BIODATA_0 = {1}", DateTime.Now.ToString("yyyy-MM-dd"), 1);
-                                        using (SqlCommand command2 = new SqlCommand(query, connection))
-                                        {
-                                            logger.LogInformation("getInfoDisp - QUERY: " + query);
-                                            command2.ExecuteNonQuery();
-                                        }
-                                        res =  "BIODATA_0 ACTUALIZADA.";
-                                        break;
-                                    case "1":
-                                        query = string.Format("UPDATE KEY_CONCILIADOR SET FECHA = CONVERT(DATETIME, '{0}'), BIODATA_1 = {1}", DateTime.Now.ToString("yyy-MM-dd"), 1);
-                                        using (SqlCommand command2 = new SqlCommand(query, connection))
-                                        {
-                                            logger.LogInformation("getInfoDisp - QUERY: " + query);
-                                            command2.ExecuteNonQuery();
-                                        }
-                                        res = "BIODATA_1 ACTUALIZADA.";
-                                        break;
-                                    case "2":
-                                        query = string.Format("UPDATE KEY_CONCILIADOR SET FECHA = CONVERT(DATETIME, '{0}'), BIODATA_2 = {1}", DateTime.Now.ToString("yyyy-MM-dd"), 1);
-                                        using (SqlCommand command2 = new SqlCommand(query, connection))
-                                        {
-                                            logger.LogInformation("getInfoDisp - QUERY: " + query);
-                                            command2.ExecuteNonQuery();
-                                        }
-                                        res = "BIODATA_2 ACTUALIZADA.";
-                                        break;
-                                    case "3":
-                                        query = string.Format("UPDATE KEY_CONCILIADOR SET FECHA = CONVERT(DATETIME, '{0}'), BIODATA_3 = {1}", DateTime.Now.ToString("yyyy-MM-dd"), 1);
-                                        using (SqlCommand command2 = new SqlCommand(query, connection))
-                                        {
-                                            logger.LogInformation("getInfoDisp - QUERY: " + query);
-                                            command2.ExecuteNonQuery();
-                                        }
-                                        res = "BIODATA_3 ACTUALIZADA.";
-                                        break;
-                                    case "4":
-                                        query = string.Format("UPDATE KEY_CONCILIADOR SET FECHA = CONVERT(DATETIME, '{0}'), BIODATA_4 = {1}", DateTime.Now.ToString("yyyy-MM-dd"), 1);
-                                        using (SqlCommand command2 = new SqlCommand(query, connection))
-                                        {
-                                            logger.LogInformation("getInfoDisp - QUERY: " + query);
-                                            command2.ExecuteNonQuery();
-                                        }
-                                        res = "BIODATA_4 ACTUALIZADA.";
-                                        break;
-                                    case "5":
-                                        query = string.Format("UPDATE KEY_CONCILIADOR SET FECHA = CONVERT(DATETIME, '{0}'), BIODATA_5 = {1}", DateTime.Now.ToString("yyyy-MM-dd"), 1);
-                                        using (SqlCommand command2 = new SqlCommand(query, connection))
-                                        {
-                                            logger.LogInformation("getInfoDisp - QUERY: " + query);
-                                            command2.ExecuteNonQuery();
-                                        }
-                                        res = "BIODATA_5 ACTUALIZADA.";
-                                        break;
-                                    case "6":
-                                        query = string.Format("UPDATE KEY_CONCILIADOR SET FECHA = CONVERT(DATETIME, '{0}'), BIODATA_6 = {1}", DateTime.Now.ToString("yyyy-MM-dd"), 1);
-                                        using (SqlCommand command2 = new SqlCommand(query, connection))
-                                        {
-                                            logger.LogInformation("getInfoDisp - QUERY: " + query);
-                                            command2.ExecuteNonQuery();
-                                        }
-                                        res = "BIODATA_6 ACTUALIZADA.";
-                                        break;
-                                    case "7":
-                                        query = string.Format("UPDATE KEY_CONCILIADOR SET FECHA = CONVERT(DATETIME, '{0}'), BIODATA_7 = {1}", DateTime.Now.ToString("yyyy-MM-dd"), 1);
-                                        using (SqlCommand command2 = new SqlCommand(query, connection))
-                                        {
-                                            logger.LogInformation("getInfoDisp - QUERY: " + query);
-                                            command2.ExecuteNonQuery();
-                                        }
-                                        res = "BIODATA_7 ACTUALIZADA.";
-                                        break;
-                                    case "8":
-                                        query = string.Format("UPDATE KEY_CONCILIADOR SET FECHA = CONVERT(DATETIME, '{0}'), BIODATA_8 = {1}", DateTime.Now.ToString("yyyy-MM-dd"), 1);
-                                        using (SqlCommand command2 = new SqlCommand(query, connection))
-                                        {
-                                            logger.LogInformation("getInfoDisp - QUERY: " + query);
-                                            command2.ExecuteNonQuery();
-                                        }
-                                        res = "BIODATA_8 ACTUALIZADA.";
-                                        break;
-                                    case "9":
-                                        query = string.Format("UPDATE KEY_CONCILIADOR SET FECHA = CONVERT(DATETIME, '{0}'), BIODATA_9 = {1}", DateTime.Now.ToString("yyyy-MM-dd"), 1);
-                                        using (SqlCommand command2 = new SqlCommand(query, connection))
-                                        {
-                                            logger.LogInformation("getInfoDisp - QUERY: " + query);
-                                            command2.ExecuteNonQuery();
-                                        }
-                                        res = "BIODATA_9 ACTUALIZADA.";
-                                        break;
-                                }
-                                return res;
                             }
                         }
-                        else 
+                        catch (Exception ex)
                         {
-                            query = "INSERT INTO KEY_CONCILIADOR(DNI, SN, FECHA, USERINFO, BIOPHOTO, BIODATA_0, BIODATA_1, BIODATA_2,BIODATA_3,BIODATA_4,BIODATA_5,BIODATA_6,BIODATA_7,BIODATA_8,BIODATA_9) VALUES(";
-                            query += string.Format("{0}, '{1}', '{2}', {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}, {11}, {12}, {13}, {14})", biodata.dni, biodata.sn, DateTime.Now.ToString("yyyy:mm:dd"), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-                            using (SqlCommand command2 = new SqlCommand(query, connection))
-                            {
-                                logger.LogInformation("getInfoDisp - QUERY: " + query);
-                                command2.ExecuteNonQuery();
-                            }
-                        }                        
+                            response.Close();
+                            logger.LogError("getInfoDisp - ERROR EN LA QUERY: " + ex.Message);
+
+                        }
                     }
-                    catch (Exception ex)
-                    {
-                        response.Close();
-                        logger.LogError("getInfoDisp - ERROR EN LA QUERY: " + ex.Message);
-                        
-                    }                    
                 }
             }
-
+            catch (Exception ex)
+            {
+                logger.LogError("ERROR CONCILIADOR: " + ex.Message);
                 return "";
+            }
+
+            return "";
         }
+
+        public static string ActualizarEstadoDelDispositivo(ILogger logger, Estado estado)
+        {
+            string retMsg = "";
+
+            try
+            {
+                string query = "";
+
+                string instanciaDispositivo = "";
+                string sucursalDispositivo = "";
+
+                string estadoDispositivo = "";
+
+                using (SqlConnection connection = new SqlConnection(SQL_CONNECTION_PRODUCTIONS))
+                {
+                    connection.Open();                    
+
+                    query = string.Format("SELECT INSTANCIA, ID_SUCURSAL FROM MACHINES WHERE sn = '{0}'", estado.sn);
+                    using (SqlCommand command = new SqlCommand(query, connection))
+                    {
+                        SqlDataReader response;
+                        response = command.ExecuteReader();
+                        if (response.HasRows)
+                        {
+                            if (response.Read())
+                            {
+                                instanciaDispositivo = response[0].ToString();
+                                sucursalDispositivo = response[1].ToString();
+                            }
+                            response.Close();
+                        }
+                        else
+                        {
+                            logger.LogError("ERROR: " + query + " SIN DATOS.");
+                            response.Close();
+                            return retMsg = query + " SIN DATOS.";
+                        }
+                    }
+                    connection.Close();
+                }
+                using (SqlConnection connection = new SqlConnection(SQL_CONNECTION_TRANSACTIONS))
+                {
+                    connection.Open();
+
+                    query = string.Format("SELECT EST_ESTADO AS estado FROM ESTADO_DISPOSITIVOS WHERE EST_SN = '{0}'", estado.sn);
+                    using (SqlCommand command = new SqlCommand(query, connection))
+                    {
+                        SqlDataReader response;
+                        response = command.ExecuteReader();
+                        if (response.HasRows)
+                        {
+                            if (response.Read())
+                                estadoDispositivo = response[0].ToString();
+                            response.Close();
+                            query = "UPDATE ESTADO_DISPOSITIVOS SET EST_ESTADO = 1 ,EST_ULTIMO_REPORTE = GETDATE()";
+                            if (!string.IsNullOrEmpty(sucursalDispositivo))
+                                query +=string.Format(",EST_SUCURSAL = {0}", sucursalDispositivo);
+                            if (!string.IsNullOrEmpty(estado.ip))
+                                query += string.Format(",EST_IP = '{0}'", estado.ip);
+                            if (!string.IsNullOrEmpty(estado.host))
+                                query += string.Format(",EST_HOST = '{0}'", estado.host);
+                            if (!string.IsNullOrEmpty(estado.fw))
+                                query += string.Format(",EST_VERSION_FW = '{0}'", estado.fw);
+                            if (!string.IsNullOrEmpty(estado.usuarios))
+                                query += string.Format(",EST_CANT_USUARIOS = {0}", estado.usuarios);
+                            if (!string.IsNullOrEmpty(estado.huella))
+                                query += string.Format(",EST_CANT_HUELLAS = {0}", estado.huella);
+                            if (!string.IsNullOrEmpty(estado.marcas))
+                                query += string.Format(",EST_CANT_MARCAS = {0}", estado.marcas);
+                            if (!string.IsNullOrEmpty(estado.rostros))
+                                query += string.Format(",EST_CANT_ROSTROS = {0}", estado.rostros);
+                            if (!string.IsNullOrEmpty(estado.ver_huella))
+                                query += string.Format(",EST_VERSION_ALGORITMO_HUELLA = {0}", estado.ver_huella);
+                            if (!string.IsNullOrEmpty(estado.ver_rostro))
+                                query += string.Format(",EST_VERSION_ALGORITMO_ROSTRO = {0}", estado.ver_rostro);
+                            if (!string.IsNullOrEmpty(estado.cant_funciones))
+                                query += string.Format(",EST_CANT_FUNCIONES_SOPORTADAS = {0}", estado.cant_funciones);  
+                            if (!string.IsNullOrEmpty(estado.cant_rostros_enrolamiento))
+                                query += string.Format(",EST_CANT_ROSTROS_ENROLAMIENTO = {0}", estado.cant_rostros_enrolamiento);
+
+                            query += string.Format(",EST_ESTADO_CARGA = 'NO_APLICA',EST_BATERIA_RESTANTE='NO_APLICA',EST_TEAM_VIEWER_ID='NO_APLICA' WHERE EST_SN = '{0}'", estado.sn);                            
+                            using (SqlCommand command1 = new SqlCommand(query, connection)) { command1.ExecuteNonQuery(); }
+                            retMsg = "ESTADO ACTUALIZADO.";
+
+                        }
+                        else
+                        {
+                            response.Close();
+                            query = "INSERT INTO ESTADO_DISPOSITIVOS (EST_SN,EST_ESTADO,EST_ULTIMO_REPORTE,EST_SUCURSAL,EST_IP,EST_HOST,EST_VERSION_FW,EST_CANT_USUARIOS,";
+                            query += "EST_CANT_HUELLAS,EST_CANT_MARCAS,EST_CANT_ROSTROS,EST_VERSION_ALGORITMO_HUELLA,EST_VERSION_ALGORITMO_ROSTRO,EST_CANT_FUNCIONES_SOPORTADAS,EST_CANT_ROSTROS_ENROLAMIENTO,";
+                            query += "EST_ESTADO_CARGA,EST_BATERIA_RESTANTE,EST_TEAM_VIEWER_ID)";
+                            query += string.Format("VALUES('{0}', 1, GETDATE(), '{1}', '{2}', '{3}', '{4}',{5},{6},{7},{8},{9},{10},{11},{12},'{13}','{14}','{15}')",estado.sn,sucursalDispositivo,estado.ip,estado.host,estado.fw,estado.usuarios,estado.huella,estado.marcas,estado.rostros,estado.ver_huella,estado.ver_rostro,estado.cant_funciones,estado.cant_rostros_enrolamiento,"NO_APLICA", "NO_APLICA", "NO_APLICA");
+                            
+                            using (SqlCommand command1 = new SqlCommand(query, connection)) { command1.ExecuteNonQuery(); }
+
+                            retMsg = "ESTADO INSERTADO.";
+                        }
+                    }
+                    connection.Close();
+                }
+            }
+            catch (Exception ex) 
+            {
+                logger.LogError("ERROR: " + ex.Message + " TRACE "+ ex.StackTrace);
+                return retMsg = ex.Message;
+            }          
+
+            return retMsg;
+        } 
+
+        public static string ComputeSha256Hash(string rawData)
+        {
+            // Create a SHA256   
+            using (SHA256 sha256Hash = SHA256.Create())
+            {
+                // ComputeHash - returns byte array  
+                byte[] bytes = sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(rawData));
+
+                // Convert byte array to a string   
+                StringBuilder builder = new StringBuilder();
+                for (int i = 0; i < bytes.Length; i++)
+                {
+                    builder.Append(bytes[i].ToString("x2"));
+                }
+                return builder.ToString();
+            }
+        }
+
 
         #region METODOS A OCUPAR EN UseDatabase
         public static int addKeyModelD(SqlConnection connection, ILogger logger, string zona, string dni, string biometria, string tipoBiometria, string instancia, string idDisp, string pass)
@@ -499,7 +657,7 @@ namespace ADMS_API.Database
                     {
                         if (isUpdate)
                         {
-                            string query = string.Format("UPDATE KEY_TEMPLATE SET TEM_DATO = '{0}', TEM_LARGO = {1} WHERE TEM_DNI = {2} AND TEM_TIPO = {3}  AND TEM_INDICE = {4}", biometria, largo, dni, biometriaSql, indice); // seleccionar todos los bagnumer sucursal 
+                            string query = string.Format("UPDATE KEY_TEMPLATE SET TEM_DATO = '{0}', TEM_LARGO = {1} WHERE TEM_DNI = {2} AND TEM_TIPO = {3}  AND TEM_INDICE = {4}", biometria, largo, dni, biometriaSql, indice);
 
                             try
                             {
@@ -514,7 +672,7 @@ namespace ADMS_API.Database
                         else //$dni.",".$biometriaSql.",'".$biometria."',".$largo.",".$indice."
                         {
 
-                            string query = string.Format("INSERT INTO KEY_TEMPLATE (TEM_DNI,TEM_TIPO,TEM_DATO,TEM_LARGO,TEM_INDICE) VALUES ({0},{1},'{2}',{3},{4})", dni, biometriaSql, biometria, largo, indice); // seleccionar todos los bagnumer sucursal 
+                            string query = string.Format("INSERT INTO KEY_TEMPLATE (TEM_DNI,TEM_TIPO,TEM_DATO,TEM_LARGO,TEM_INDICE) VALUES ({0},{1},'{2}',{3},{4})", dni, biometriaSql, biometria, largo, indice);
 
                             try
                             {
@@ -529,7 +687,7 @@ namespace ADMS_API.Database
                     }
                     else
                     {
-                        string query1 = string.Format("SELECT 1 FROM KEY_TEMPLATE WHERE TEM_DATO = '{0}'", biometria); // seleccionar todos los bagnumer sucursal 
+                        string query1 = string.Format("SELECT 1 FROM KEY_TEMPLATE WHERE TEM_DATO = '{0}'", biometria);
                         using (SqlCommand command = new SqlCommand(query1, connection))
                         {
                             SqlDataReader response1;
@@ -539,7 +697,7 @@ namespace ADMS_API.Database
                                 response1.Close();
                                 if (isUpdate)
                                 {
-                                    string query = string.Format("UPDATE KEY_TEMPLATE SET TEM_DATO = '{0}', TEM_LARGO = {1} WHERE TEM_DNI = {2} AND TEM_TIPO = {3}  AND TEM_INDICE = {4}", biometria, largo, dni, biometriaSql, indice); // seleccionar todos los bagnumer sucursal 
+                                    string query = string.Format("UPDATE KEY_TEMPLATE SET TEM_DATO = '{0}', TEM_LARGO = {1} WHERE TEM_DNI = {2} AND TEM_TIPO = {3}  AND TEM_INDICE = {4}", biometria, largo, dni, biometriaSql, indice);  
                                     try
                                     {
                                         using (SqlCommand command1 = new SqlCommand(query, connection)) { command1.ExecuteNonQuery(); }
@@ -915,135 +1073,3 @@ namespace ADMS_API.Database
         #endregion
     }
 }
-
-//CODIGO 1
-/*string query_cara = string.Format("SELECT u.Badgenumber AS dni,u.Nombre_1 AS nom1,u.Apellido_1 AS ap1, u.privilege, u.TIPO_CUENTA AS tCuenta,u.PASSWORD, TEM_DATO AS cara,TEM_INDICE AS indice,TEM_LARGO AS largo FROM USERINFO u inner join KEY_TEMPLATE on TEM_DNI = u.Badgenumber  WHERE u.Badgenumber ='{0}' AND u.TIPO_CUENTA > 1 AND HABILITADO > 0 AND TEM_TIPO = 2 AND TEM_INDICE = 1000", dni);
-                                using (SqlConnection connection3 = new SqlConnection(SQL_CONNECTION_PRODUCTIONS))
-                                {
-                                    SqlCommand command = new SqlCommand(query_cara, connection3);
-                                    connection3.Open();
-                                    SqlDataReader reader = command.ExecuteReader();
-                                    try
-                                    {
-                                        while (reader.Read())
-                                        {
-                                            string nombre = reader["nom1"].ToString() + " " + reader["ap1"].ToString();
-                                            string cara = reader["cara"].ToString();
-                                            string indice2 = reader["indice"].ToString();
-                                            string largo2 = reader["largo"].ToString();
-                                            string datosCara = "{" + string.Format("\"dni\":{0},\"cara\":\"{1}\",\"indice_cara\":{2},\"largo_cara\":\"{3}\"", dni, cara, indice2, largo2) + "}";
-                                            string insert_cara = string.Format("INSERT INTO TRANSACCIONES (TRA_TIPO,TRA_ESTADO,TRA_DETALLE,TRA_SN,TRA_MENSAJE,TRA_HORA_INICIO,TRA_DATA_1,TRA_PRIORIDAD) VALUES (8,0,'{0}','{1}','UP_FACETEMP',GETDATE(),'carga_app0',5000)", datosCara, snZk);
-
-                                            using (SqlCommand command2 = new SqlCommand(insert_cara, connection)) { command2.ExecuteNonQuery(); }
-                                        }
-                                    }
-                                    finally
-                                    {
-                                        // Always call Close when done reading.
-                                        reader.Close();
-                                    }
-                                }*/
-
-//CODIGO 2
-
-/*string query_usu = string.Format("SELECT u.Badgenumber AS dni, u.Nombre_1 AS nom1,u.Apellido_1 AS ap1, u.privilege, u.TIPO_CUENTA AS tCuenta,u.PASSWORD, TEM_INDICE AS indice , TEM_DATO AS huella  FROM USERINFO u inner join KEY_TEMPLATE on  TEM_DNI = u.Badgenumber  AND TEM_TIPO = 1 WHERE u.Badgenumber ='{0}' AND u.TIPO_CUENTA > 1 AND HABILITADO > 0  AND TEM_LARGO = 0", dni);
-                            using (SqlConnection connection3 = new SqlConnection(SQL_CONNECTION_PRODUCTIONS))
-                            {
-                                SqlCommand command3 = new SqlCommand(query_usu, connection3);
-                                connection3.Open();
-                                SqlDataReader reader = command3.ExecuteReader();
-                                try
-                                {
-                                    while (reader.Read())
-                                    {
-                                        string nombre = reader["nom1"].ToString() + " " + reader["ap1"].ToString();
-                                        string huella = reader["huella"].ToString();
-                                        string indice2 = reader["indice"].ToString();
-                                        string largo2 = "0";
-                                        string datosHuellas = "{" + string.Format("\"dni\":{0},\"huella\":\"{1}\",\"indice_dedo\":{2},\"largo_huella\":\"{3}\"", dni, huella, indice2, largo2) + "}";
-                                        string insert_huella = string.Format("INSERT INTO TRANSACCIONES (TRA_TIPO,TRA_ESTADO,TRA_DETALLE,TRA_SN,TRA_MENSAJE,TRA_HORA_INICIO,TRA_DATA_1,TRA_PRIORIDAD) VALUES (7,0,'{0}','{1}','UP_FINGERTEMP',GETDATE(),'carga_app0',4000)", datosHuellas, snZk);
-
-                                        using (SqlCommand command2 = new SqlCommand(insert_huella, connection)) { command2.ExecuteNonQuery(); }
-
-                                    }
-                                }
-                                catch (Exception ex) 
-                                {
-                                    logger.LogError("GetNextCommand ERROR: " + ex.Message);
-                                }
-                                finally
-                                {
-                                    // Always call Close when done reading.
-                                    reader.Close();
-                                }
-                            }*/
-
-//CODIGO 3 
-/*if (tipoBiometria == "1") 
-                    {
-                        string query_cara = string.Format("SELECT u.Badgenumber AS dni,u.Nombre_1 AS nom1,u.Apellido_1 AS ap1, u.privilege, u.TIPO_CUENTA AS tCuenta,u.PASSWORD, TEM_DATO AS cara,TEM_INDICE AS indice,TEM_LARGO AS largo FROM USERINFO u inner join KEY_TEMPLATE on TEM_DNI = u.Badgenumber  WHERE u.Badgenumber ='{0}' AND u.TIPO_CUENTA > 1 AND HABILITADO > 0 AND TEM_TIPO = 2 AND TEM_INDICE = 1000", dni);
-                        using (SqlConnection connection3 = new SqlConnection(SQL_CONNECTION_PRODUCTIONS))
-                        {
-                            SqlCommand command = new SqlCommand(query_cara, connection3);
-                            connection3.Open();
-                            SqlDataReader reader = command.ExecuteReader();
-                            try
-                            {
-                                while (reader.Read())
-                                {
-                                    string nombre = reader["nom1"].ToString() + " " + reader["ap1"].ToString();
-                                    string cara = reader["cara"].ToString();
-                                    string indice2 = reader["indice"].ToString();
-                                    string largo2 = reader["largo"].ToString();
-                                    string datosCara = "{" + string.Format("\"dni\":{0},\"cara\":\"{1}\",\"indice_cara\":{2},\"largo_cara\":\"{3}\"", dni, cara, indice2, largo2) + "}";
-                                    string insert_cara = string.Format("INSERT INTO TRANSACCIONES (TRA_TIPO,TRA_ESTADO,TRA_DETALLE,TRA_SN,TRA_MENSAJE,TRA_HORA_INICIO,TRA_DATA_1,TRA_PRIORIDAD) VALUES (8,0,'{0}','{1}','UP_FACETEMP',GETDATE(),'carga_app0',5000)", datosCara, sn);
-
-                                    using (SqlCommand command2 = new SqlCommand(insert_cara, connection)) { command2.ExecuteNonQuery(); }
-                                }
-                            }
-                            finally
-                            {
-                                // Always call Close when done reading.
-                                reader.Close();
-                            }
-                        }
-                    }
-                    else if (tipoBiometria == "2") 
-                    {
-                        string query_usu = string.Format("SELECT u.Badgenumber AS dni, u.Nombre_1 AS nom1,u.Apellido_1 AS ap1, u.privilege, u.TIPO_CUENTA AS tCuenta,u.PASSWORD, TEM_INDICE AS indice , TEM_DATO AS huella  FROM USERINFO u inner join KEY_TEMPLATE on  TEM_DNI = u.Badgenumber  AND TEM_TIPO = 1 WHERE u.Badgenumber ='{0}' AND u.TIPO_CUENTA > 1 AND HABILITADO > 0  AND TEM_LARGO = 0", dni);
-                        using (SqlConnection connection3 = new SqlConnection(SQL_CONNECTION_PRODUCTIONS))
-                        {
-                            SqlCommand command3 = new SqlCommand(query_usu, connection3);
-                            connection3.Open();
-                            SqlDataReader reader = command3.ExecuteReader();
-                            try
-                            {
-                                while (reader.Read())
-                                {
-                                    string nombre = reader["nom1"].ToString() + " " + reader["ap1"].ToString();
-                                    string huella = reader["huella"].ToString();
-                                    string indice2 = reader["indice"].ToString();
-                                    string largo2 = "0";
-                                    string datosHuellas = "{" + string.Format("\"dni\":{0},\"huella\":\"{1}\",\"indice_dedo\":{2},\"largo_huella\":\"{3}\"", dni, huella, indice2, largo2) + "}";
-                                    string insert_huella = string.Format("INSERT INTO TRANSACCIONES (TRA_TIPO,TRA_ESTADO,TRA_DETALLE,TRA_SN,TRA_MENSAJE,TRA_HORA_INICIO,TRA_DATA_1,TRA_PRIORIDAD) VALUES (7,0,'{0}','{1}','UP_FINGERTEMP',GETDATE(),'carga_app0',4000)", datosHuellas, sn);
-
-                                    using (SqlCommand command2 = new SqlCommand(insert_huella, connection)) { command2.ExecuteNonQuery(); }
-                                    //using (SqlCommand command = new SqlCommand(insert_huella, connection)) { command.ExecuteNonQuery(); }
-
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                logger.LogError("GetNextCommand ERRORRRRRR: " + ex.Message);
-                            }
-                            finally
-                            {
-                                // Always call Close when done reading.
-                                reader.Close();
-                            }
-                        }
-                    }
-                    else
-                    {
-                        logger.LogError("addDniPreEnrol: ERROR EN LA QUERY: ");
-                    }*/

@@ -9,7 +9,7 @@ namespace ADMS_API
     public class Program
     {
         public static void Main(string[] args)
-        {
+        {    
             // NLog: setup the logger first to catch all errors
             var logger = NLog.Web.NLogBuilder.ConfigureNLog("NLog.config").GetCurrentClassLogger();
             try

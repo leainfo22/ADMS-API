@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -25,8 +26,7 @@ namespace ADMS_API.Controllers
         {
             var returnValue = "registry=ok";
             _logger.LogInformation("PRUEBA: " + returnValue);
-            return returnValue;
-            
+            return returnValue;            
         }
 
         [HttpPost("insertBiometria")]
@@ -35,20 +35,27 @@ namespace ADMS_API.Controllers
             GetBodyData(Request.Body);            
             return "";
         }
-        /*
+
         [HttpPost("insertConciliadorBio")]
         public ActionResult<string> PostConciliadorBio()
         {
             GetBodyDataConciliador(Request.Body,true);
             return "";
         }
+
         [HttpPost("insertConciliadorUser")]
         public ActionResult<string> PostConciliadorUser()
         {
             GetBodyDataConciliador(Request.Body, false);
             return "";
         }
-        */
+
+        [HttpPost("estadoDispositivo")]
+        public ActionResult<string> EstadoBiometico() 
+        {
+            GetBodyDataEstado(Request.Body);
+            return "";
+        }
         private void GetBodyData(Stream body)
         {
             using (var reader = new System.IO.StreamReader(body))
@@ -80,20 +87,20 @@ namespace ADMS_API.Controllers
                 try
                 {
                     _logger.LogInformation("INICIO CONCILIADOR");
-                    //database = new Database.Database();
+                    Database.Database database = new Database.Database();
                     string bodyOut = reader.ReadToEnd();
                     string response = "";
                     if (bio) 
                     {
                         Biodata biodata = new Biodata();
                         biodata = JsonConvert.DeserializeObject<Biodata>(bodyOut);
-                        response = Database.Database.UseDatabaseConciliador(_logger, biodata, null);
+                        response = database.UseDatabaseConciliador(_logger, biodata, null);
                     }
                     else 
                     {
                         Userinfo userinfo = new Userinfo();
                         userinfo = JsonConvert.DeserializeObject<Userinfo>(bodyOut);
-                        response = Database.Database.UseDatabaseConciliador(_logger, null, userinfo);
+                        response = database.UseDatabaseConciliador(_logger, null, userinfo);
                     }
                     
                     //string response = database.UseDatabase(_logger, biodata);
@@ -102,12 +109,52 @@ namespace ADMS_API.Controllers
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError("GetBodyData body: " + ex.Message);
+                    _logger.LogError("ERROR CONCILIADOR: " + ex.Message + ex.StackTrace);
                     return;
                 }
             }
         }
+
+        private void GetBodyDataEstado(Stream body)
+        {
+            try
+            {
+                using (var reader = new System.IO.StreamReader(body))
+                {                
+                    _logger.LogInformation("INICIO ESTADO DISPOSITIVO");
+                    string bodyOut = reader.ReadToEnd();
+
+                    Estado estado = new Estado();
+                    estado = JsonConvert.DeserializeObject<Estado>(bodyOut);
+                    string response = Database.Database.ActualizarEstadoDelDispositivo(_logger, estado);
+                    _logger.LogInformation("FIN DEL PROCESO CON RESPUESTA: " + response);
+                    return;          
+                
+                } 
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("GetBodyDataEstado: " + ex.Message +" TRACE: " + ex.StackTrace);
+                return;
+            }
+        }
     }
+    public class Estado
+    {
+        public string sn { get; set; }
+        public string ip { get; set; }
+        public string host { get; set; }
+        public string fw { get; set; }
+        public string usuarios { get; set; }
+        public string huella { get; set; }
+        public string marcas { get; set; }
+        public string rostros { get; set; }
+        public string ver_huella { get; set; }
+        public string ver_rostro { get; set; }
+        public string cant_funciones { get; set; }
+        public string cant_rostros_enrolamiento { get; set; }
+    }
+
     public class Biodata
     {
         public string sn{ get; set; }
@@ -122,12 +169,18 @@ namespace ADMS_API.Controllers
 
     public class Userinfo
     { 
-        public string pin { get; set; }
-        public string name { get; set; }
-        public string pri { get; set; }
-        public string passwd { get; set; }
-        public string card { get; set; }
-        public string rut { get; set; }
-        
+        public string sn { get; set; }
+        public IList<datosColab> datos_colab { get; set; }       
+    }
+
+    public class datosColab
+    {
+        public string userId { get; set; }
+        public string nombre { get; set; }
+        public string tarjeta { get; set; }
+        public string clave { get; set; }
+        public string privilegio { get; set; }
+        public string run { get; set; }
+
     }
 }

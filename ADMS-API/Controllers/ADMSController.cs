@@ -26,6 +26,10 @@ namespace ADMS_API.Controllers
         {
             var returnValue = "registry=ok";
             _logger.LogInformation("PRUEBA: " + returnValue);
+
+            string a = DateTime.UtcNow.AddHours(-3).ToString();
+            string b = DateTime.UtcNow.ToString();
+
             return returnValue;            
         }
 
@@ -35,6 +39,12 @@ namespace ADMS_API.Controllers
             GetBodyData(Request.Body);            
             return "";
         }
+        /*[HttpPost("insertBiometriaHash")]
+        public ActionResult<string> PostCDataHash()
+        {
+            GetBodyDataHash(Request.Body);
+            return "";
+        }*/
 
         [HttpPost("insertConciliadorBio")]
         public ActionResult<string> PostConciliadorBio()
@@ -54,6 +64,12 @@ namespace ADMS_API.Controllers
         public ActionResult<string> EstadoBiometico() 
         {
             GetBodyDataEstado(Request.Body);
+            return "";
+        }
+        [HttpPost("estadoDispositivoLite")]
+        public ActionResult<string> EstadoBiometicoLite()
+        {
+            GetBodyDataEstadoLite(Request.Body);
             return "";
         }
         private void GetBodyData(Stream body)
@@ -79,6 +95,30 @@ namespace ADMS_API.Controllers
                 }
             }
         }
+
+       /* private void GetBodyDataHash(Stream body)
+        {
+            using (var reader = new System.IO.StreamReader(body))
+            {
+                try
+                {
+                    _logger.LogInformation("INICIO HASH" );
+                    //database = new Database.Database();
+                    string bodyOut = reader.ReadToEnd();
+                    Biodata biodata = new Biodata();
+                    biodata = JsonConvert.DeserializeObject<Biodata>(bodyOut);
+                    string response = Database.Database.UseDatabaseHash(_logger, biodata);
+                    //string response = database.UseDatabase(_logger, biodata);
+                    _logger.LogInformation("FIN DEL PROCESO CON RESPUESTA: " + response);
+                    return; 
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError("GetBodyData body: " + ex.Message);
+                    return;
+                }
+            }
+        }*/
 
         private void GetBodyDataConciliador(Stream body,bool bio)
         {
@@ -138,6 +178,30 @@ namespace ADMS_API.Controllers
                 return;
             }
         }
+
+        private void GetBodyDataEstadoLite(Stream body)
+        {
+            try
+            {
+                using (var reader = new System.IO.StreamReader(body))
+                {
+                    _logger.LogInformation("INICIO ESTADO DISPOSITIVO");
+                    string bodyOut = reader.ReadToEnd();
+
+                    EstadoLite estado = new EstadoLite();
+                    estado = JsonConvert.DeserializeObject<EstadoLite>(bodyOut);
+                    string response = Database.Database.ActualizarEstadoDelDispositivoLite(_logger, estado);
+                    _logger.LogInformation("FIN DEL PROCESO CON RESPUESTA: " + response);
+                    return;
+
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("GetBodyDataEstado: " + ex.Message + " TRACE: " + ex.StackTrace);
+                return;
+            }
+        }
     }
     public class Estado
     {
@@ -153,7 +217,18 @@ namespace ADMS_API.Controllers
         public string ver_rostro { get; set; }
         public string cant_funciones { get; set; }
         public string cant_rostros_enrolamiento { get; set; }
+        public string timezone { get; set; }
+
     }
+
+    public class EstadoLite
+    {
+        public string sn { get; set; }
+        public string host { get; set; }
+        public string timezone { get; set; }
+
+    }
+
 
     public class Biodata
     {

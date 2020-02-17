@@ -234,6 +234,167 @@ namespace ADMS_API.Database
             return "FIN DE USE DATABASE";
         }
 
+        public static string UseDatabaseHash(ILogger logger, Biodata biodata)
+        {
+            if (!string.IsNullOrEmpty(biodata.huella) && biodata.huella != "")
+            {
+                biometria = biodata.huella;
+                indice = biodata.indiceDedo;
+                largo = biodata.largoHuella;
+                tipoBiometria = 1;
+            }
+            else if (!string.IsNullOrEmpty(biodata.cara) && biodata.cara != "")
+            {
+                biometria = biodata.cara;
+                indice = biodata.faceId;
+                largo = biodata.faceLong;
+                tipoBiometria = 2;
+            }
+            else
+                return "ERROR BIOMETRIA VACIA.";
+
+            using (SqlConnection connection = new SqlConnection(SQL_CONNECTION_PRODUCTIONS))
+            {
+                connection.Open();
+                responseGetInfoDisp = new Dictionary<string, string>();
+                responseFindColab = new Dictionary<string, string>();
+
+                if (getInfoDisp(connection, logger, biodata.sn) != CODIGO_EXITO)
+                    return "Error en getInfoDisp, dispositivo sin datos o error en query";
+
+                bool success = Int32.TryParse(responseGetInfoDisp["dis_tipo"], out disTipoOut);
+
+                int respFindColab = findColab(connection, logger, biodata.dni, responseGetInfoDisp["instancia"]);
+                if (respFindColab == CODIGO_SIN_DATOS) //SIN DATOS
+                {
+                    int responselookForPreEnrol = lookForPreEnrol(connection, logger, biodata.dni, responseGetInfoDisp["sucursal"]);
+                    if (responselookForPreEnrol == CODIGO_SIN_DATOS || responselookForPreEnrol == CODIGO_EXITO)
+                    {
+                        if (responselookForPreEnrol == CODIGO_SIN_DATOS)
+                        {
+                            logger.LogInformation("Se agrega usuario a la tabla de pre-enrolamiento");
+                            if (addDniPreEnrol(connection, logger, biodata.dni, biodata.sn, "", responseGetInfoDisp["sucursal"]) != CODIGO_EXITO)
+                                return "CODIGO DE ERROR EN addDniPreEnrol.";
+                        }
+
+                        int responseGetPlantilla = getPlantilla(connection, logger, biodata.dni, indice, tipoBiometria, disTipoOut);
+                        if (responseGetPlantilla == CODIGO_SIN_DATOS)
+                        {
+                            /*
+                             * isUpdate = false;
+                            if (createOrUpdateTemplate(connection, logger, biodata.dni, biometria, indice, tipoBiometria, largo, disTipoOut, responseGetPlantilla) != CODIGO_EXITO)
+                                return "CODIGO DE ERROR EN createOrUpdateTemplate.";
+                                */
+                            return "ALERTA LA PERSONA NO TIENE DATOS BIOMETRICOS EN LA DB PERO SI EN EL EQUIPO.";
+                        }
+                        else if (responseGetPlantilla == CODIGO_EXITO)
+                        {
+                            /*
+                            string msgResponse = "";
+                            if (indiceGetPlantilla == indice)
+                            {
+                                isUpdate = true;
+                                msgResponse = "Template actualizado.";
+                            }
+                            else
+                            {
+                                isUpdate = false;
+                                msgResponse = "Template actualizado.";
+                            }
+
+                            if (createOrUpdateTemplate(connection, logger, biodata.dni, biometria, indice, tipoBiometria, largo, disTipoOut, responseGetPlantilla) != CODIGO_EXITO)
+                                return "CODIGO DE ERROR EN createOrUpdateTemplate.";
+                                */
+                            return "EN ESTA API NO SE ACTUALIZA NADA DESDE EL EQUIPO ZK";
+                        }
+                        else
+                            return "CODIGO DE ERROR EN GetPlantilla.";
+                    }
+                    else
+                        return "CODIGO DE ERROR EN lookForPreEnrol.";
+
+                }
+                else if (respFindColab == CODIGO_EXITO)// EXITO
+                {
+                    listSN = new List<string>();
+                    int responseGetPlantilla = getPlantilla(connection, logger, biodata.dni, indice, tipoBiometria, disTipoOut);
+                    if (responseGetPlantilla == CODIGO_SIN_DATOS)
+                    {
+                        /*isUpdate = false;
+                        if (createOrUpdateTemplate(connection, logger, biodata.dni, biometria, indice, tipoBiometria, largo, disTipoOut, responseGetPlantilla) == CODIGO_EXITO)
+                        {
+                            int responseCheckModelo = checkModelo(connection, logger, biodata.dni, responseGetInfoDisp["zona"], responseGetInfoDisp["instancia"], responseGetInfoDisp["id"]);
+                            getDispsModelo(connection, logger, biodata.dni, responseGetInfoDisp["id"], responseGetInfoDisp["instancia"], responseGetInfoDisp["sucursal"]);
+
+                            if (responseCheckModelo == CODIGO_EXITO)
+                            {
+                                addPublish(logger, biodata.sn, biodata.dni, responseFindColab["nom"], responseFindColab["rut_emp"], responseFindColab["nom_emp"], responseFindColab["dir_emp"], responseFindColab["pZk"], responseFindColab["tarjeta"], "1", biometria, indice, largo, tipoBiometria.ToString(), "", listSN);
+                                return "Biometria enviada a la tabla transacciones.";
+                            }
+                            else if (responseCheckModelo == CODIGO_SIN_DATOS)
+                            {
+                                int res = addKeyModelD(connection, logger, "0", biodata.dni, biometria, tipoBiometria.ToString(), responseGetInfoDisp["instancia"], responseGetInfoDisp["id"], "");
+                                if (res == CODIGO_EXITO)
+                                {
+                                    logger.LogInformation("Se envian a transacciones la biometria asociada al usuario " + biodata.dni + " para cada dispositivo.");
+                                    addPublish(logger, biodata.sn, biodata.dni, responseFindColab["nom"], responseFindColab["rut_emp"], responseFindColab["nom_emp"], responseFindColab["dir_emp"], responseFindColab["pZk"], responseFindColab["tarjeta"], "1", biometria, indice, largo, tipoBiometria.ToString(), "", listSN);
+                                    return "Biometria enviada a la tabla transacciones.";
+                                }
+                                else
+                                    return "ERROR EN addKeyModelD.";
+
+                            }
+                            else
+                                return "ERROR EN responseCheckModelo.";
+                        }
+                        else*/
+                        return "ALERTA SE EL USUARIO TIENE BIOMETRIA QUE NO ESTA EN LA DB";
+                    }
+                    else if (responseGetPlantilla == CODIGO_EXITO)
+                    {
+                        if (!string.IsNullOrEmpty(biometria) || biometria != "")
+                        {
+                            if (indice != indiceGetPlantilla)
+                                isUpdate = false;
+                            else
+                                isUpdate = true;
+
+                            if (createOrUpdateTemplate(connection, logger, biodata.dni, biometria, indice, tipoBiometria, largo, disTipoOut, responseGetPlantilla) == CODIGO_EXITO)
+                            {
+                                int responseCheckModelo = checkModelo(connection, logger, biodata.dni, responseGetInfoDisp["zona"], responseGetInfoDisp["instancia"], responseGetInfoDisp["id"]);
+                                getDispsModelo(connection, logger, biodata.dni, responseGetInfoDisp["id"], responseGetInfoDisp["instancia"], responseGetInfoDisp["sucursal"]);
+                                if (responseCheckModelo == CODIGO_EXITO)
+                                {
+                                    addPublish(logger, biodata.sn, biodata.dni, responseFindColab["nom"], responseFindColab["rut_emp"], responseFindColab["nom_emp"], responseFindColab["dir_emp"], responseFindColab["pZk"], responseFindColab["tarjeta"], "1", biometria, indice, largo, tipoBiometria.ToString(), "", listSN);
+                                    return "Biometria enviada a la tabla transacciones.";
+                                }
+                                else if (responseCheckModelo == CODIGO_SIN_DATOS)
+                                {
+                                    int res = addKeyModelD(connection, logger, "0", biodata.dni, biometria, tipoBiometria.ToString(), responseGetInfoDisp["instancia"], responseGetInfoDisp["id"], "");
+                                    if (res == CODIGO_EXITO)
+                                    {
+                                        addPublish(logger, biodata.sn, biodata.dni, responseFindColab["nom"], responseFindColab["rut_emp"], responseFindColab["nom_emp"], responseFindColab["dir_emp"], responseFindColab["pZk"], responseFindColab["tarjeta"], "1", biometria, indice, largo, tipoBiometria.ToString(), "", listSN);
+                                        return "Biometria enviada a la tabla transacciones.";
+                                    }
+                                    else
+                                        return "ERROR EN addKeyModelD.";
+                                }
+                                else
+                                    return "ERROR EN responseCheckModelo.";
+                            }
+                        }
+                        else
+                            return "ERROR BIOMETRIA VACIA O NULLA";
+                    }
+                    else
+                        return "ERROR: responseGetPlantilla";
+                }
+                else
+                    return " CODIGO DE ERROR EN findColab.";
+            }
+            return "FIN DE USE DATABASE";
+        }
+
         public string UseDatabaseConciliador(ILogger logger, Biodata biodata, Userinfo userinfo)
         {
             try
@@ -468,52 +629,61 @@ namespace ADMS_API.Database
                         SqlDataReader response;
                         response = command.ExecuteReader();
                         if (response.HasRows)
-                        {
-                            if (response.Read())
-                                estadoDispositivo = response[0].ToString();
-                            response.Close();
-                            query = "UPDATE ESTADO_DISPOSITIVOS SET EST_ESTADO = 1 ,EST_ULTIMO_REPORTE = GETDATE()";
-                            if (!string.IsNullOrEmpty(sucursalDispositivo))
-                                query +=string.Format(",EST_SUCURSAL = {0}", sucursalDispositivo);
-                            if (!string.IsNullOrEmpty(estado.ip))
-                                query += string.Format(",EST_IP = '{0}'", estado.ip);
-                            if (!string.IsNullOrEmpty(estado.host))
-                                query += string.Format(",EST_HOST = '{0}'", estado.host);
-                            if (!string.IsNullOrEmpty(estado.fw))
-                                query += string.Format(",EST_VERSION_FW = '{0}'", estado.fw);
-                            if (!string.IsNullOrEmpty(estado.usuarios))
-                                query += string.Format(",EST_CANT_USUARIOS = {0}", estado.usuarios);
-                            if (!string.IsNullOrEmpty(estado.huella))
-                                query += string.Format(",EST_CANT_HUELLAS = {0}", estado.huella);
-                            if (!string.IsNullOrEmpty(estado.marcas))
-                                query += string.Format(",EST_CANT_MARCAS = {0}", estado.marcas);
-                            if (!string.IsNullOrEmpty(estado.rostros))
-                                query += string.Format(",EST_CANT_ROSTROS = {0}", estado.rostros);
-                            if (!string.IsNullOrEmpty(estado.ver_huella))
-                                query += string.Format(",EST_VERSION_ALGORITMO_HUELLA = {0}", estado.ver_huella);
-                            if (!string.IsNullOrEmpty(estado.ver_rostro))
-                                query += string.Format(",EST_VERSION_ALGORITMO_ROSTRO = {0}", estado.ver_rostro);
-                            if (!string.IsNullOrEmpty(estado.cant_funciones))
-                                query += string.Format(",EST_CANT_FUNCIONES_SOPORTADAS = {0}", estado.cant_funciones);  
-                            if (!string.IsNullOrEmpty(estado.cant_rostros_enrolamiento))
-                                query += string.Format(",EST_CANT_ROSTROS_ENROLAMIENTO = {0}", estado.cant_rostros_enrolamiento);
+                        {                           
+                                if (response.Read())
+                                    estadoDispositivo = response[0].ToString();
+                                response.Close();
+                                float timezone;
+                                bool success = float.TryParse(estado.timezone, out timezone);
+                                if(success)
+                                    query = string.Format("UPDATE ESTADO_DISPOSITIVOS SET EST_ESTADO = 1 ,EST_ULTIMO_REPORTE = CONVERT(DATETIME, '{0}', 120)", DateTime.UtcNow.AddHours(timezone).ToString("yyyy-MM-dd HH:mm:ss"));
+                                else
+                                    query = string.Format("UPDATE ESTADO_DISPOSITIVOS SET EST_ESTADO = 1 ,EST_ULTIMO_REPORTE = CONVERT(DATETIME, '{0}', 120)", DateTime.UtcNow.AddHours(-3).ToString("yyyy-MM-dd HH:mm:ss"));
 
-                            query += string.Format(",EST_ESTADO_CARGA = 'NO_APLICA',EST_BATERIA_RESTANTE='NO_APLICA',EST_TEAM_VIEWER_ID='NO_APLICA' WHERE EST_SN = '{0}'", estado.sn);                            
+                                if (!string.IsNullOrEmpty(sucursalDispositivo))
+                                    query += string.Format(",EST_SUCURSAL = {0}", sucursalDispositivo);
+                                if (!string.IsNullOrEmpty(estado.ip))
+                                    query += string.Format(",EST_IP = '{0}'", estado.ip);
+                                if (!string.IsNullOrEmpty(estado.host))
+                                    query += string.Format(",EST_HOST = '{0}'", estado.host);
+                                if (!string.IsNullOrEmpty(estado.fw))
+                                    query += string.Format(",EST_VERSION_FW = '{0}'", estado.fw);
+                                if (!string.IsNullOrEmpty(estado.usuarios))
+                                    query += string.Format(",EST_CANT_USUARIOS = {0}", estado.usuarios);
+                                if (!string.IsNullOrEmpty(estado.huella))
+                                    query += string.Format(",EST_CANT_HUELLAS = {0}", estado.huella);
+                                if (!string.IsNullOrEmpty(estado.marcas))
+                                    query += string.Format(",EST_CANT_MARCAS = {0}", estado.marcas);
+                                if (!string.IsNullOrEmpty(estado.rostros))
+                                    query += string.Format(",EST_CANT_ROSTROS = {0}", estado.rostros);
+                                if (!string.IsNullOrEmpty(estado.ver_huella))
+                                    query += string.Format(",EST_VERSION_ALGORITMO_HUELLA = {0}", estado.ver_huella);
+                                if (!string.IsNullOrEmpty(estado.ver_rostro))
+                                    query += string.Format(",EST_VERSION_ALGORITMO_ROSTRO = {0}", estado.ver_rostro);
+                                if (!string.IsNullOrEmpty(estado.cant_funciones))
+                                    query += string.Format(",EST_CANT_FUNCIONES_SOPORTADAS = {0}", estado.cant_funciones);
+                                if (!string.IsNullOrEmpty(estado.cant_rostros_enrolamiento))
+                                    query += string.Format(",EST_CANT_ROSTROS_ENROLAMIENTO = {0}", estado.cant_rostros_enrolamiento);
+                                query += string.Format(",EST_ESTADO_CARGA = 'NO_APLICA',EST_BATERIA_RESTANTE='NO_APLICA',EST_TEAM_VIEWER_ID='NO_APLICA' WHERE EST_SN = '{0}'", estado.sn);
+
                             using (SqlCommand command1 = new SqlCommand(query, connection)) { command1.ExecuteNonQuery(); }
-                            retMsg = "ESTADO ACTUALIZADO.";
-
+                            retMsg = "ESTADO ACTUALIZADO " + estado.sn;                                
                         }
                         else
                         {
+                            float timezone;
+                            bool success = float.TryParse(estado.timezone, out timezone);
+                            if (!success)
+                                timezone = -3;
                             response.Close();
                             query = "INSERT INTO ESTADO_DISPOSITIVOS (EST_SN,EST_ESTADO,EST_ULTIMO_REPORTE,EST_SUCURSAL,EST_IP,EST_HOST,EST_VERSION_FW,EST_CANT_USUARIOS,";
                             query += "EST_CANT_HUELLAS,EST_CANT_MARCAS,EST_CANT_ROSTROS,EST_VERSION_ALGORITMO_HUELLA,EST_VERSION_ALGORITMO_ROSTRO,EST_CANT_FUNCIONES_SOPORTADAS,EST_CANT_ROSTROS_ENROLAMIENTO,";
                             query += "EST_ESTADO_CARGA,EST_BATERIA_RESTANTE,EST_TEAM_VIEWER_ID)";
-                            query += string.Format("VALUES('{0}', 1, GETDATE(), '{1}', '{2}', '{3}', '{4}',{5},{6},{7},{8},{9},{10},{11},{12},'{13}','{14}','{15}')",estado.sn,sucursalDispositivo,estado.ip,estado.host,estado.fw,estado.usuarios,estado.huella,estado.marcas,estado.rostros,estado.ver_huella,estado.ver_rostro,estado.cant_funciones,estado.cant_rostros_enrolamiento,"NO_APLICA", "NO_APLICA", "NO_APLICA");
+                            query += string.Format("VALUES('{0}', 1, CONVERT(DATETIME, '{16}', 120), '{1}', '{2}', '{3}', '{4}',{5},{6},{7},{8},{9},{10},{11},{12},'{13}','{14}','{15}')", estado.sn,sucursalDispositivo,estado.ip,estado.host,estado.fw,estado.usuarios,estado.huella,estado.marcas,estado.rostros,estado.ver_huella,estado.ver_rostro,estado.cant_funciones,estado.cant_rostros_enrolamiento,"NO_APLICA", "NO_APLICA", "NO_APLICA", DateTime.UtcNow.AddHours(timezone).ToString("yyyy-MM-dd HH:mm:ss"));
                             
                             using (SqlCommand command1 = new SqlCommand(query, connection)) { command1.ExecuteNonQuery(); }
 
-                            retMsg = "ESTADO INSERTADO.";
+                            retMsg = "ESTADO INSERTADO " + estado.sn;
                         }
                     }
                     connection.Close();
@@ -526,7 +696,86 @@ namespace ADMS_API.Database
             }          
 
             return retMsg;
-        } 
+        }
+
+        public static string ActualizarEstadoDelDispositivoLite(ILogger logger, EstadoLite estado) 
+        {
+            string retMsg = "";
+
+            try
+            {
+                string query = "";
+                string instanciaDispositivo = "";
+                string sucursalDispositivo = "";
+                string estadoDispositivo = "";
+
+                using (SqlConnection connection = new SqlConnection(SQL_CONNECTION_PRODUCTIONS))
+                {
+                    connection.Open();
+
+                    query = string.Format("SELECT INSTANCIA, ID_SUCURSAL FROM MACHINES WHERE sn = '{0}'", estado.sn);
+                    using (SqlCommand command = new SqlCommand(query, connection))
+                    {
+                        SqlDataReader response;
+                        response = command.ExecuteReader();
+                        if (response.HasRows)
+                        {
+                            if (response.Read())
+                            {
+                                instanciaDispositivo = response[0].ToString();
+                                sucursalDispositivo = response[1].ToString();
+                            }
+                            response.Close();
+                        }
+                        else
+                        {
+                            logger.LogError("ERROR: " + query + " SIN DATOS.");
+                            response.Close();
+                            return retMsg = query + " SIN DATOS.";
+                        }
+                    }
+                    connection.Close();
+                }
+                using (SqlConnection connection = new SqlConnection(SQL_CONNECTION_TRANSACTIONS))
+                {
+                    connection.Open();
+
+                    query = string.Format("SELECT EST_ESTADO AS estado FROM ESTADO_DISPOSITIVOS WHERE EST_SN = '{0}'", estado.sn);
+                    using (SqlCommand command = new SqlCommand(query, connection))
+                    {
+                        SqlDataReader response;
+                        response = command.ExecuteReader();
+                        if (response.HasRows)
+                        {
+                            if (response.Read())
+                                estadoDispositivo = response[0].ToString();
+                            response.Close();
+                            float timezone;
+                            bool success = float.TryParse(estado.timezone, out timezone);
+                            if (success)
+                                query = string.Format("UPDATE ESTADO_DISPOSITIVOS SET EST_ESTADO = 1 ,EST_ULTIMO_REPORTE = CONVERT(DATETIME, '{0}', 120)", DateTime.UtcNow.AddHours(timezone).ToString("yyyy-MM-dd HH:mm:ss"));
+                            else
+                                query = string.Format("UPDATE ESTADO_DISPOSITIVOS SET EST_ESTADO = 1 ,EST_ULTIMO_REPORTE = CONVERT(DATETIME, '{0}', 120)", DateTime.UtcNow.AddHours(-3).ToString("yyyy-MM-dd HH:mm:ss"));
+                            query += string.Format(",EST_HOST = '{0}'", estado.host);
+                            query += string.Format(",EST_ESTADO_CARGA = 'NO_APLICA',EST_BATERIA_RESTANTE='NO_APLICA',EST_TEAM_VIEWER_ID='NO_APLICA' WHERE EST_SN = '{0}'", estado.sn);
+
+                            using (SqlCommand command1 = new SqlCommand(query, connection)) { command1.ExecuteNonQuery(); }
+                            retMsg = "ESTADO ACTUALIZADO " + estado.sn;
+                        }                       
+                        response.Close();
+                        
+                    }
+                    connection.Close();
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError("ERROR: " + ex.Message + " TRACE " + ex.StackTrace);
+                return retMsg = ex.Message;
+            }
+
+            return retMsg;
+        }
 
         public static string ComputeSha256Hash(string rawData)
         {

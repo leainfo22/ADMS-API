@@ -210,7 +210,7 @@ namespace ADMS_API.Controllers
         public string host { get; set; }
         public string fw { get; set; }
         public string usuarios { get; set; }
-        public string huella { get; set; }
+        public string huellas { get; set; }
         public string marcas { get; set; }
         public string rostros { get; set; }
         public string ver_huella { get; set; }

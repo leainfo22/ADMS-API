@@ -280,31 +280,10 @@ namespace ADMS_API.Database
                         int responseGetPlantilla = getPlantilla(connection, logger, biodata.dni, indice, tipoBiometria, disTipoOut);
                         if (responseGetPlantilla == CODIGO_SIN_DATOS)
                         {
-                            /*
-                             * isUpdate = false;
-                            if (createOrUpdateTemplate(connection, logger, biodata.dni, biometria, indice, tipoBiometria, largo, disTipoOut, responseGetPlantilla) != CODIGO_EXITO)
-                                return "CODIGO DE ERROR EN createOrUpdateTemplate.";
-                                */
                             return "ALERTA LA PERSONA NO TIENE DATOS BIOMETRICOS EN LA DB PERO SI EN EL EQUIPO.";
                         }
                         else if (responseGetPlantilla == CODIGO_EXITO)
                         {
-                            /*
-                            string msgResponse = "";
-                            if (indiceGetPlantilla == indice)
-                            {
-                                isUpdate = true;
-                                msgResponse = "Template actualizado.";
-                            }
-                            else
-                            {
-                                isUpdate = false;
-                                msgResponse = "Template actualizado.";
-                            }
-
-                            if (createOrUpdateTemplate(connection, logger, biodata.dni, biometria, indice, tipoBiometria, largo, disTipoOut, responseGetPlantilla) != CODIGO_EXITO)
-                                return "CODIGO DE ERROR EN createOrUpdateTemplate.";
-                                */
                             return "EN ESTA API NO SE ACTUALIZA NADA DESDE EL EQUIPO ZK";
                         }
                         else
@@ -320,34 +299,6 @@ namespace ADMS_API.Database
                     int responseGetPlantilla = getPlantilla(connection, logger, biodata.dni, indice, tipoBiometria, disTipoOut);
                     if (responseGetPlantilla == CODIGO_SIN_DATOS)
                     {
-                        /*isUpdate = false;
-                        if (createOrUpdateTemplate(connection, logger, biodata.dni, biometria, indice, tipoBiometria, largo, disTipoOut, responseGetPlantilla) == CODIGO_EXITO)
-                        {
-                            int responseCheckModelo = checkModelo(connection, logger, biodata.dni, responseGetInfoDisp["zona"], responseGetInfoDisp["instancia"], responseGetInfoDisp["id"]);
-                            getDispsModelo(connection, logger, biodata.dni, responseGetInfoDisp["id"], responseGetInfoDisp["instancia"], responseGetInfoDisp["sucursal"]);
-
-                            if (responseCheckModelo == CODIGO_EXITO)
-                            {
-                                addPublish(logger, biodata.sn, biodata.dni, responseFindColab["nom"], responseFindColab["rut_emp"], responseFindColab["nom_emp"], responseFindColab["dir_emp"], responseFindColab["pZk"], responseFindColab["tarjeta"], "1", biometria, indice, largo, tipoBiometria.ToString(), "", listSN);
-                                return "Biometria enviada a la tabla transacciones.";
-                            }
-                            else if (responseCheckModelo == CODIGO_SIN_DATOS)
-                            {
-                                int res = addKeyModelD(connection, logger, "0", biodata.dni, biometria, tipoBiometria.ToString(), responseGetInfoDisp["instancia"], responseGetInfoDisp["id"], "");
-                                if (res == CODIGO_EXITO)
-                                {
-                                    logger.LogInformation("Se envian a transacciones la biometria asociada al usuario " + biodata.dni + " para cada dispositivo.");
-                                    addPublish(logger, biodata.sn, biodata.dni, responseFindColab["nom"], responseFindColab["rut_emp"], responseFindColab["nom_emp"], responseFindColab["dir_emp"], responseFindColab["pZk"], responseFindColab["tarjeta"], "1", biometria, indice, largo, tipoBiometria.ToString(), "", listSN);
-                                    return "Biometria enviada a la tabla transacciones.";
-                                }
-                                else
-                                    return "ERROR EN addKeyModelD.";
-
-                            }
-                            else
-                                return "ERROR EN responseCheckModelo.";
-                        }
-                        else*/
                         return "ALERTA SE EL USUARIO TIENE BIOMETRIA QUE NO ESTA EN LA DB";
                     }
                     else if (responseGetPlantilla == CODIGO_EXITO)
@@ -650,8 +601,8 @@ namespace ADMS_API.Database
                                     query += string.Format(",EST_VERSION_FW = '{0}'", estado.fw);
                                 if (!string.IsNullOrEmpty(estado.usuarios))
                                     query += string.Format(",EST_CANT_USUARIOS = {0}", estado.usuarios);
-                                if (!string.IsNullOrEmpty(estado.huella))
-                                    query += string.Format(",EST_CANT_HUELLAS = {0}", estado.huella);
+                                if (!string.IsNullOrEmpty(estado.huellas))
+                                    query += string.Format(",EST_CANT_HUELLAS = {0}", estado.huellas);
                                 if (!string.IsNullOrEmpty(estado.marcas))
                                     query += string.Format(",EST_CANT_MARCAS = {0}", estado.marcas);
                                 if (!string.IsNullOrEmpty(estado.rostros))
@@ -679,7 +630,7 @@ namespace ADMS_API.Database
                             query = "INSERT INTO ESTADO_DISPOSITIVOS (EST_SN,EST_ESTADO,EST_ULTIMO_REPORTE,EST_SUCURSAL,EST_IP,EST_HOST,EST_VERSION_FW,EST_CANT_USUARIOS,";
                             query += "EST_CANT_HUELLAS,EST_CANT_MARCAS,EST_CANT_ROSTROS,EST_VERSION_ALGORITMO_HUELLA,EST_VERSION_ALGORITMO_ROSTRO,EST_CANT_FUNCIONES_SOPORTADAS,EST_CANT_ROSTROS_ENROLAMIENTO,";
                             query += "EST_ESTADO_CARGA,EST_BATERIA_RESTANTE,EST_TEAM_VIEWER_ID)";
-                            query += string.Format("VALUES('{0}', 1, CONVERT(DATETIME, '{16}', 120), '{1}', '{2}', '{3}', '{4}',{5},{6},{7},{8},{9},{10},{11},{12},'{13}','{14}','{15}')", estado.sn,sucursalDispositivo,estado.ip,estado.host,estado.fw,estado.usuarios,estado.huella,estado.marcas,estado.rostros,estado.ver_huella,estado.ver_rostro,estado.cant_funciones,estado.cant_rostros_enrolamiento,"NO_APLICA", "NO_APLICA", "NO_APLICA", DateTime.UtcNow.AddHours(timezone).ToString("yyyy-MM-dd HH:mm:ss"));
+                            query += string.Format("VALUES('{0}', 1, CONVERT(DATETIME, '{16}', 120), '{1}', '{2}', '{3}', '{4}',{5},{6},{7},{8},{9},{10},{11},{12},'{13}','{14}','{15}')", estado.sn,sucursalDispositivo,estado.ip,estado.host,estado.fw,estado.usuarios,estado.huellas,estado.marcas,estado.rostros,estado.ver_huella,estado.ver_rostro,estado.cant_funciones,estado.cant_rostros_enrolamiento,"NO_APLICA", "NO_APLICA", "NO_APLICA", DateTime.UtcNow.AddHours(timezone).ToString("yyyy-MM-dd HH:mm:ss"));
                             
                             using (SqlCommand command1 = new SqlCommand(query, connection)) { command1.ExecuteNonQuery(); }
 
@@ -1180,6 +1131,146 @@ namespace ADMS_API.Database
                 }
             }            
         }
+
+       /* public static string checkHashModel(ILogger logger, string sn, string dni, string nomColab, string rutEmp, string nomEmp, string dirEmp, string pZk, string tarjeta, string grupo, string biometria, string indice, string largo, string tipoBiometria, string pass, snZk) 
+        {
+            string jsonStrBiophoto = "";
+            string jsonStrFinger = "";
+            string jsonStrUserInfo = "";
+
+            try
+            {
+                jsonUserInfo = new JsonUserInfo();
+
+                jsonUserInfo.dni = dni;
+                jsonUserInfo.nombre = nomColab;
+                jsonUserInfo.rut_emp = rutEmp;
+                jsonUserInfo.nombre_emp = nomEmp;
+                jsonUserInfo.direccion_emp = dirEmp;
+                jsonUserInfo.privilegio = pZk;
+                jsonUserInfo.tarjeta = tarjeta;
+                jsonUserInfo.grupo = grupo;
+                jsonUserInfo.pass = pass;
+
+                jsonStrUserInfo = JsonConvert.SerializeObject(jsonUserInfo);
+
+                if (tipoBiometria == "1")
+                {
+                    jsonFinger = new JsonFinger();
+                    jsonFinger.dni = dni;
+                    jsonFinger.huella = biometria;
+                    jsonFinger.indice_dedo = indice;
+                    jsonFinger.largo_huella = largo;
+                    jsonStrFinger = JsonConvert.SerializeObject(jsonFinger);
+
+                }
+                else if (tipoBiometria == "2")
+                {
+                    string biometriaReducida = "";
+                    try
+                    {
+                        if (biometria.Length > imgSize)
+                            biometriaReducida = ImgProcess.reducctionQuality(biometria);
+                        else
+                            biometriaReducida = biometria;
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError("ERROR AL REDUCIR EL TAMANHO DE LA BIOMETRIA: " + ex.Message);
+
+                    }
+
+                    if (biometriaReducida == "-1")
+                    {
+                        logger.LogError("ERROR AL REDUCIR EL TAMANHO DE LA BIOMETRIA: " + biometria);
+                        return "";
+                    }
+                    else
+                    {
+                        jsonBiophoto = new JsonBiophoto();
+                        jsonBiophoto.dni = dni;
+                        jsonBiophoto.cara = biometriaReducida;
+                        jsonBiophoto.indice_cara = indice;
+                        jsonBiophoto.largo_cara = largo;
+                        jsonStrBiophoto = JsonConvert.SerializeObject(jsonBiophoto);
+                    }
+                }
+                else
+                {
+                    logger.LogError("EL TIPO DE BIOMETRIA NO ESTA PERMITIDO. TIPO BIOMETRIA: " + tipoBiometria);
+                    return "";
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex.Message);
+                return "";
+            }
+            using (SqlConnection connection = new SqlConnection(SQL_CONNECTION_TRANSACTIONS))
+            {
+                try
+                {
+                    connection.Open();
+                    
+                    string query = "INSERT INTO TRANSACCIONES (TRA_TIPO,TRA_ESTADO,TRA_DETALLE,TRA_SN,TRA_MENSAJE,TRA_HORA_INICIO,TRA_DATA_1,TRA_ORIGEN) VALUES(6, 0, ";
+                    query += string.Format("'{0}', '{1}', 'UP_USERINFO', '{2}', '{3}', 'template-addPublish')", jsonStrUserInfo, snZk, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), sn);
+
+                    string logUser = string.Format("'{0}', '{1}', 'UP_USERINFO', '{2}', '{3}', 'template-addPublish')", string.Format("DNI: {0} NAME_EMP: {1}, PRIV: {2}, PASS: {3}", dni, nomEmp, pZk, pass), snZk, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), sn);
+
+                    logger.LogInformation("addPublish: QUERY-UP_USERINFO: " + logUser);
+                    try
+                    {
+                        using (SqlCommand command = new SqlCommand(query, connection))
+                        {
+                            command.ExecuteNonQuery();
+                        }
+                        if (tipoBiometria == "1")
+                        {
+                            query = "INSERT INTO TRANSACCIONES (TRA_TIPO,TRA_ESTADO,TRA_DETALLE,TRA_SN,TRA_MENSAJE,TRA_HORA_INICIO,TRA_DATA_1,TRA_ORIGEN) VALUES(7, 0, ";
+                            string log = query;
+                            query += string.Format("'{0}', '{1}', 'UP_FINGERTEMP', '{2}', '{3}', 'template-addPublish')", jsonStrFinger, snZk, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), sn);
+                            log += string.Format("'{0}', '{1}', 'UP_FINGERTEMP', '{2}', '{3}', 'template-addPublish')", string.Format("DNI: {0} INDICE: {1}, LARGO: {2}", dni, indice, largo), snZk, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), sn);
+                            logger.LogInformation("addPublish: QUERY-UP_FINGERTEMP: " + log);
+
+                            using (SqlCommand command = new SqlCommand(query, connection)) { command.ExecuteNonQuery(); }
+
+                            //CODIGO 1
+                        }
+                        else if (tipoBiometria == "2")
+                        {
+                            query = "INSERT INTO TRANSACCIONES (TRA_TIPO,TRA_ESTADO,TRA_DETALLE,TRA_SN,TRA_MENSAJE,TRA_HORA_INICIO,TRA_DATA_1,TRA_ORIGEN) VALUES(8, 0, ";
+                            string log = query;
+                            query += string.Format("'{0}', '{1}', 'UP_FACETEMP', '{2}', '{3}', 'template-addPublish')", jsonStrBiophoto, snZk, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), sn);
+                            log += string.Format("'{0}', '{1}', 'UP_FACETEMP', '{2}', '{3}', 'template-addPublish')", string.Format("DNI: {0} INDICE: {1}, LARGO: {2}", dni, indice, largo), snZk, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), sn);
+                            logger.LogInformation("addPublish: QUERY-UP_FACETEMP: " + log);
+
+                            using (SqlCommand command = new SqlCommand(query, connection)) { command.ExecuteNonQuery(); }
+
+                            //CODIGO 2                                
+                        }
+                        else
+                        {
+                            logger.LogError("addDniPreEnrol: ERROR EN LA QUERY: ");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError("addDniPreEnrol: ERROR EN LA QUERY: " + ex.Message);
+                        //return CODIGO_ERROR;
+                    }
+                    
+                    //ACA IBA EL CODIGO 3 
+
+                    connection.Close();
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError("ERROR: " + ex.Message);
+                    connection.Close();
+                }
+            }
+            return "";
+        }*/
         public static void addPublish( ILogger logger, string sn,string dni, string nomColab, string rutEmp, string nomEmp ,string dirEmp, string pZk, string tarjeta, string grupo, string biometria, string indice, string largo, string tipoBiometria, string pass,List<string> dispsModelo) 
         {
             string jsonStrBiophoto = "";

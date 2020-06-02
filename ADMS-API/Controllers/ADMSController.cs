@@ -24,41 +24,11 @@ namespace ADMS_API.Controllers
         [HttpGet("state")]
         public ActionResult<string> GetCData()
         {
-            var returnValue = "registry=ok";
+            var returnValue = "ESTADO BIOMETRICO: OK";
             _logger.LogInformation("PRUEBA: " + returnValue);
 
-            string a = DateTime.UtcNow.AddHours(-3).ToString();
-            string b = DateTime.UtcNow.ToString();
-
             return returnValue;            
-        }
-
-        [HttpPost("insertBiometria")]
-        public ActionResult<string> PostCData()
-        {            
-            GetBodyData(Request.Body);            
-            return "";
-        }
-        /*[HttpPost("insertBiometriaHash")]
-        public ActionResult<string> PostCDataHash()
-        {
-            GetBodyDataHash(Request.Body);
-            return "";
-        }*/
-
-        [HttpPost("insertConciliadorBio")]
-        public ActionResult<string> PostConciliadorBio()
-        {
-            GetBodyDataConciliador(Request.Body,true);
-            return "";
-        }
-
-        [HttpPost("insertConciliadorUser")]
-        public ActionResult<string> PostConciliadorUser()
-        {
-            GetBodyDataConciliador(Request.Body, false);
-            return "";
-        }
+        }         
 
         [HttpPost("estadoDispositivo")]
         public ActionResult<string> EstadoBiometico() 
@@ -71,89 +41,7 @@ namespace ADMS_API.Controllers
         {
             GetBodyDataEstadoLite(Request.Body);
             return "";
-        }
-        private void GetBodyData(Stream body)
-        {
-            using (var reader = new System.IO.StreamReader(body))
-            {
-                try
-                {
-                    _logger.LogInformation("INICIO" );
-                    //database = new Database.Database();
-                    string bodyOut = reader.ReadToEnd();
-                    Biodata biodata = new Biodata();
-                    biodata = JsonConvert.DeserializeObject<Biodata>(bodyOut);
-                    string response = Database.Database.UseDatabase(_logger, biodata);
-                    //string response = database.UseDatabase(_logger, biodata);
-                    _logger.LogInformation("FIN DEL PROCESO CON RESPUESTA: " + response);/**/
-                    return; 
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError("GetBodyData body: " + ex.Message);
-                    return;
-                }
-            }
-        }
-
-       /* private void GetBodyDataHash(Stream body)
-        {
-            using (var reader = new System.IO.StreamReader(body))
-            {
-                try
-                {
-                    _logger.LogInformation("INICIO HASH" );
-                    //database = new Database.Database();
-                    string bodyOut = reader.ReadToEnd();
-                    Biodata biodata = new Biodata();
-                    biodata = JsonConvert.DeserializeObject<Biodata>(bodyOut);
-                    string response = Database.Database.UseDatabaseHash(_logger, biodata);
-                    //string response = database.UseDatabase(_logger, biodata);
-                    _logger.LogInformation("FIN DEL PROCESO CON RESPUESTA: " + response);
-                    return; 
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError("GetBodyData body: " + ex.Message);
-                    return;
-                }
-            }
-        }*/
-
-        private void GetBodyDataConciliador(Stream body,bool bio)
-        {
-            using (var reader = new System.IO.StreamReader(body))
-            {
-                try
-                {
-                    _logger.LogInformation("INICIO CONCILIADOR");
-                    Database.Database database = new Database.Database();
-                    string bodyOut = reader.ReadToEnd();
-                    string response = "";
-                    if (bio) 
-                    {
-                        Biodata biodata = new Biodata();
-                        biodata = JsonConvert.DeserializeObject<Biodata>(bodyOut);
-                        response = database.UseDatabaseConciliador(_logger, biodata, null);
-                    }
-                    else 
-                    {
-                        Userinfo userinfo = new Userinfo();
-                        userinfo = JsonConvert.DeserializeObject<Userinfo>(bodyOut);
-                        response = database.UseDatabaseConciliador(_logger, null, userinfo);
-                    }
-                    
-                    //string response = database.UseDatabase(_logger, biodata);
-                    _logger.LogInformation("FIN DEL PROCESO CON RESPUESTA DEL CONCILIADOR: " + response);/**/
-                    return;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError("ERROR CONCILIADOR: " + ex.Message + ex.StackTrace);
-                    return;
-                }
-            }
-        }
+        } 
 
         private void GetBodyDataEstado(Stream body)
         {
